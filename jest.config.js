@@ -7,4 +7,6 @@ module.exports = {
     'src/**/*.ts',
     '!src/**/*.d.ts',
   ],
+  maxWorkers: '50%', // Limit workers to avoid availableParallelism issues
+  workerIdleMemoryLimit: '512MB',
 };
