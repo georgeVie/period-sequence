@@ -58,6 +58,5 @@ Thumbs.db
 logs
 *.log
 
-# Build artifacts (we include dist/ for npm but exclude from git during development)
-# Uncomment the next line if you want to exclude dist from git:
-# dist/
+# Build artifacts (excluded from git, generated during build)
+dist/
