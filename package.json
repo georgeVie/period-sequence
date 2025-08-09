@@ -1,0 +1,49 @@
+{
+  "name": "@georgevie/period-sequence",
+  "version": "1.0.0",
+  "description": "High-performance TypeScript library for time period manipulation with immutable design and enterprise-grade performance",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "prepublishOnly": "npm run test && npm run build"
+  },
+  "keywords": [
+    "time",
+    "temporal",
+    "chronos",
+    "period",
+    "date",
+    "duration",
+    "interval",
+    "range",
+    "time-series",
+    "typescript",
+    "performance",
+    "immutable",
+    "high-performance"
+  ],
+  "author": "georgeVie",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.2.1",
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "ts-jest": "^29.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/georgeVie/periods.git"
+  }
+}
