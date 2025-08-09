@@ -251,6 +251,14 @@ export class Sequence implements Iterable<Period> {
   }
 
   /**
+   * Reduce sequence to a single value
+   * Standard array reduce functionality
+   */
+  reduce<T>(reducer: (accumulator: T, period: Period, index: number, array: readonly Period[]) => T, initialValue: T): T {
+    return this._periods.reduce(reducer, initialValue);
+  }
+
+  /**
    * Sort sequence by custom comparator
    * Returns new Sequence with sorted periods
    */
