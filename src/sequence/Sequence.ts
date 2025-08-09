@@ -447,8 +447,8 @@ export class Sequence implements Iterable<Period> {
   }
 
   /**
-   * Merge overlapping periods within this sequence
-   * High-performance algorithm for consolidating adjacent/overlapping periods
+   * Merge overlapping and consecutive day periods within this sequence
+   * Optimized for date-only operations with enhanced boundary logic
    * Complexity: O(n) since periods are already sorted
    */
   merge(): Sequence {
@@ -462,13 +462,19 @@ export class Sequence implements Iterable<Period> {
     for (let i = 1; i < this._periods.length; i++) {
       const next = this._periods[i];
       
-      if (current.overlaps(next) || current.touches(next)) {
-        // Merge periods
-        const startTime = Math.min(current.startTime, next.startTime);
-        const endTime = Math.max(current.endTime, next.endTime);
-        current = new Period(startTime, endTime, current.bounds);
+      // Use the enhanced date-only merging logic
+      if (current.overlaps(next) || current.canMergeConsecutiveDays(next)) {
+        // Merge periods using the union method which handles date-only logic
+        const mergedPeriod = current.union(next);
+        if (mergedPeriod) {
+          current = mergedPeriod;
+        } else {
+          // Fallback: shouldn't happen with proper logic, but safety net
+          merged.push(current);
+          current = next;
+        }
       } else {
-        // No overlap, add current and move to next
+        // No overlap or consecutive merger possible, add current and move to next
         merged.push(current);
         current = next;
       }
