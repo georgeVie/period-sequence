@@ -15,6 +15,7 @@ export type { BenchmarkResult, BenchmarkSuite } from './performance/PerformanceB
 
 // Main Period class with static constructors
 export class Period extends PeriodClass {
+  static fromDates = PeriodConstructors.fromDates;
   static fromMonth = PeriodConstructors.fromMonth;
   static fromYear = PeriodConstructors.fromYear;
   static fromDay = PeriodConstructors.fromDay;

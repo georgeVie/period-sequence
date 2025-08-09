@@ -9,6 +9,14 @@ import { DurationInterval } from '../duration/DurationInterval';
 
 export namespace PeriodConstructors {
   /**
+   * Create period from start and end dates (most common constructor)
+   * Optimized for direct date input
+   */
+  export function fromDates(start: Date, end: Date, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    return new Period(start, end, bounds);
+  }
+
+  /**
    * Create period from month (high performance, timezone-aware)
    * Pre-calculated for common use case
    */
