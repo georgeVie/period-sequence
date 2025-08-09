@@ -1,6 +1,6 @@
 {
   "name": "@georgevie/period-sequence",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "High-performance TypeScript library for time period manipulation with immutable design and enterprise-grade performance",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
