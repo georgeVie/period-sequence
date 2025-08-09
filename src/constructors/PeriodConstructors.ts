@@ -21,10 +21,10 @@ export namespace PeriodConstructors {
    * Returns period covering the entire month at day-level precision
    */
   export function fromMonth(year: number, month: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    // Create dates that will be normalized by Period constructor
-    const startDate = new Date(Date.UTC(year, month - 1, 1));
-    const endDate = new Date(Date.UTC(year, month, 1));
-    return new Period(startDate, endDate, bounds);
+    // Optimization: Use timestamps directly (already midnight UTC)
+    const startTime = Date.UTC(year, month - 1, 1);
+    const endTime = Date.UTC(year, month, 1);
+    return new Period(startTime, endTime, bounds);
   }
 
   /**
@@ -32,9 +32,10 @@ export namespace PeriodConstructors {
    * Returns period covering the entire year at day-level precision
    */
   export function fromYear(year: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const startDate = new Date(Date.UTC(year, 0, 1));
-    const endDate = new Date(Date.UTC(year + 1, 0, 1));
-    return new Period(startDate, endDate, bounds);
+    // Optimization: Use timestamps directly (already midnight UTC)
+    const startTime = Date.UTC(year, 0, 1);
+    const endTime = Date.UTC(year + 1, 0, 1);
+    return new Period(startTime, endTime, bounds);
   }
 
   /**
@@ -43,9 +44,10 @@ export namespace PeriodConstructors {
    */
   export function fromDay(date: Date | string, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     const day = typeof date === 'string' ? new Date(date) : date;
-    const startDate = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
-    const endDate = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1));
-    return new Period(startDate, endDate, bounds);
+    // Optimization: Use timestamps directly (already midnight UTC)
+    const startTime = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+    const endTime = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1);
+    return new Period(startTime, endTime, bounds);
   }
 
   /**
@@ -141,8 +143,8 @@ export namespace PeriodConstructors {
    * Timestamps are normalized to midnight UTC for consistent behavior
    */
   export function fromTimestamps(startMs: number, endMs: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    // Use Date objects to ensure normalization happens
-    return new Period(new Date(startMs), new Date(endMs), bounds);
+    // Optimization: Pass timestamps directly (will be normalized by Period constructor)
+    return new Period(startMs, endMs, bounds);
   }
 
   /**

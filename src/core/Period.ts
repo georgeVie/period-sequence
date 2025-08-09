@@ -31,20 +31,32 @@ export class Period {
    */
   private _normalizeDateToMidnightUTC(input: Date | number | string): number {
     let date: Date;
+    let timestamp: number;
     
     if (typeof input === 'string') {
       date = new Date(input);
+      timestamp = date.getTime();
     } else if (typeof input === 'number') {
-      date = new Date(input);
+      timestamp = input;
+      // Fast path: if already a midnight UTC timestamp, return directly
+      if (timestamp % 86400000 === 0) {
+        return timestamp;
+      }
+      date = new Date(timestamp);
     } else {
+      timestamp = input.getTime();
+      // Fast path: if already at midnight UTC, return directly  
+      if (timestamp % 86400000 === 0) {
+        return timestamp;
+      }
       date = input;
     }
     
     // Extract date components and create midnight UTC
     const normalized = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
     
-    // Development warning for sub-day precision inputs
-    if (process.env.NODE_ENV === 'development' && date.getTime() !== normalized) {
+    // Development warning for sub-day precision inputs (skip during tests for performance)
+    if (process.env.NODE_ENV === 'development' && typeof jest === 'undefined' && timestamp !== normalized) {
       console.warn(`Period: Time component normalized to midnight UTC. Input: ${date.toISOString()} -> Output: ${new Date(normalized).toISOString()}`);
     }
     

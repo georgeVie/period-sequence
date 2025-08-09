@@ -479,7 +479,7 @@ describe('Sequence Class', () => {
       const periods: Period[] = [];
       for (let i = 0; i < count; i++) {
         const start = new Date(startDate.getTime() + i * 86400000); // Each day
-        const end = new Date(start.getTime() + 43200000); // 12 hours duration
+        const end = new Date(start.getTime() + 86400000); // 1 day duration
         periods.push(new Period(start, end));
       }
       return new Sequence(...periods);

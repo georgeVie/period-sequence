@@ -43,7 +43,7 @@ describe('Advanced Performance Optimizations', () => {
       
       const stats = pool.getStats();
       expect(stats.hitRate).toBeGreaterThan(0.3); // At least 30% hit rate
-      expect(pooledTime).toBeLessThan(200); // Should be reasonably fast
+      expect(pooledTime).toBeLessThan(150); // Should be reasonably fast
     });
 
     test('pool statistics work correctly', () => {
@@ -240,7 +240,7 @@ function createLargeSequence(count: number, startDate: Date = new Date(2024, 0, 
   const periods: Period[] = [];
   for (let i = 0; i < count; i++) {
     const start = new Date(startDate.getTime() + i * 86400000);
-    const end = new Date(start.getTime() + 43200000);
+    const end = new Date(start.getTime() + 86400000); // 1 day duration instead of 12 hours
     periods.push(new Period(start, end));
   }
   return new Sequence(...periods);
