@@ -806,4 +806,92 @@ describe('Period Class', () => {
       expect(overlapCount).toBe(0); // Adjacent periods don't overlap by default (end != start)
     });
   });
+
+  describe('Date-Only Boundary Behavior Tests', () => {
+    test('date normalization strips time components', () => {
+      const period = new Period(
+        new Date('2024-01-01T15:30:45.123Z'),
+        new Date('2024-01-02T09:15:22.456Z')
+      );
+      
+      expect(period.start.toISOString()).toBe('2024-01-01T00:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2024-01-02T00:00:00.000Z');
+      expect(period.durationInDays).toBe(1);
+    });
+
+    test('string inputs are normalized correctly', () => {
+      const period = new Period('2024-06-15T14:30:00Z', '2024-06-16T08:45:00Z');
+      expect(period.toString()).toBe('[2024-06-15, 2024-06-16)');
+      expect(period.durationInDays).toBe(1);
+    });
+
+    test('adjacent periods with IncludeStartExcludeEnd can merge', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeStartExcludeEnd);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd);
+      
+      expect(period1.touches(period2)).toBe(true);
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(true);
+      
+      const union = period1.union(period2);
+      expect(union).not.toBeNull();
+      expect(union!.toString()).toBe('[2024-01-01, 2024-01-03)');
+    });
+
+    test('overlapping periods with IncludeAll bounds', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeAll);
+      
+      expect(period1.overlaps(period2)).toBe(true); // Both include Jan 2
+      expect(period1.touches(period2)).toBe(true);
+      
+      const union = period1.union(period2);
+      expect(union!.toString()).toBe('[2024-01-01, 2024-01-03]');
+    });
+
+    test('periods with ExcludeAll bounds do not merge on boundaries', () => {
+      const period1 = new Period('2024-01-01', '2024-01-03', Bounds.ExcludeAll);
+      const period2 = new Period('2024-01-03', '2024-01-05', Bounds.ExcludeAll);
+      
+      expect(period1.overlaps(period2)).toBe(false); // Neither includes Jan 3
+      expect(period1.touches(period2)).toBe(true);
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(false);
+    });
+
+    test('mixed bounds behavior - IncludeAll + IncludeStartExcludeEnd', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd);
+      
+      expect(period1.overlaps(period2)).toBe(true); // period1 includes Jan 2, period2 includes Jan 2
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(true);
+    });
+
+    test('seasonal boundary scenario - consecutive seasons merge', () => {
+      const winter = new Period('2024-01-01', '2024-03-20', Bounds.IncludeStartExcludeEnd);
+      const spring = new Period('2024-03-20', '2024-06-21', Bounds.IncludeStartExcludeEnd);
+      
+      expect(winter.touches(spring)).toBe(true);
+      expect(winter.canMergeConsecutiveDays(spring)).toBe(true);
+      
+      const union = winter.union(spring);
+      expect(union!.toString()).toBe('[2024-01-01, 2024-06-21)');
+      expect(union!.durationInDays).toBe(172); // Days from Jan 1 to Jun 21
+    });
+
+    test('sub-day periods are normalized to whole days', () => {
+      const sameDayPeriod = () => new Period('2024-01-01T08:00:00Z', '2024-01-01T16:00:00Z');
+      
+      // Should throw because both normalize to the same day
+      expect(sameDayPeriod).toThrow('Start date must be before end date');
+    });
+
+    test('durationInDays property works correctly', () => {
+      const oneDay = new Period('2024-01-01', '2024-01-02');
+      const oneWeek = new Period('2024-01-01', '2024-01-08');
+      const oneMonth = Period.fromMonth(2024, 2); // February 2024 (leap year)
+      
+      expect(oneDay.durationInDays).toBe(1);
+      expect(oneWeek.durationInDays).toBe(7);
+      expect(oneMonth.durationInDays).toBe(29); // Feb 2024 has 29 days
+    });
+  });
 });

@@ -649,6 +649,136 @@ describe('Sequence Class', () => {
       });
     });
 
+    describe('Boundary Logic Tests for Date-Only Operations', () => {
+      test('IncludeStartExcludeEnd [start, end) - adjacent periods merge', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeStartExcludeEnd); // [Jan 1, Jan 2)
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd); // [Jan 2, Jan 3)
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-01-03)');
+        expect(merged.get(0).bounds).toBe(Bounds.IncludeStartExcludeEnd);
+      });
+
+      test('ExcludeStartIncludeEnd (start, end] - overlapping periods merge', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.ExcludeStartIncludeEnd); // (Jan 1, Jan 2]
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.ExcludeStartIncludeEnd); // (Jan 2, Jan 3]
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        // These should merge because they both include Jan 2
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('(2024-01-01, 2024-01-03]');
+        expect(merged.get(0).bounds).toBe(Bounds.ExcludeStartIncludeEnd);
+      });
+
+      test('IncludeAll [start, end] - overlapping on boundaries', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll); // [Jan 1, Jan 2]
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeAll); // [Jan 2, Jan 3]
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-01-03]');
+        expect(merged.get(0).bounds).toBe(Bounds.IncludeAll);
+      });
+
+      test('ExcludeAll (start, end) - no merging on boundaries', () => {
+        const period1 = new Period('2024-01-01', '2024-01-03', Bounds.ExcludeAll); // (Jan 1, Jan 3)
+        const period2 = new Period('2024-01-03', '2024-01-05', Bounds.ExcludeAll); // (Jan 3, Jan 5)
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        // These should NOT merge because neither includes Jan 3
+        expect(merged.count()).toBe(2);
+      });
+
+      test('Mixed bounds - IncludeStartExcludeEnd + ExcludeStartIncludeEnd', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeStartExcludeEnd); // [Jan 1, Jan 2)
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.ExcludeStartIncludeEnd); // (Jan 2, Jan 3]
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        // These should NOT merge because period1 excludes Jan 2 and period2 excludes Jan 2
+        expect(merged.count()).toBe(2);
+      });
+
+      test('Mixed bounds - IncludeAll + IncludeStartExcludeEnd merge', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll); // [Jan 1, Jan 2]
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd); // [Jan 2, Jan 3)
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        // These should merge because period1 includes Jan 2 and period2 includes Jan 2
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-01-03]');
+      });
+
+      test('Complex seasonal boundaries - realistic scenario', () => {
+        // Realistic scenario: seasons that end/start on same day
+        const winter = new Period('2024-01-01', '2024-03-20', Bounds.IncludeStartExcludeEnd); // [Jan 1, Mar 20)
+        const spring = new Period('2024-03-20', '2024-06-21', Bounds.IncludeStartExcludeEnd); // [Mar 20, Jun 21)
+        const summer = new Period('2024-06-21', '2024-09-23', Bounds.IncludeStartExcludeEnd); // [Jun 21, Sep 23)
+        const fall = new Period('2024-09-23', '2024-12-21', Bounds.IncludeStartExcludeEnd);   // [Sep 23, Dec 21)
+        
+        const yearSequence = new Sequence(winter, spring, summer, fall);
+        const merged = yearSequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-12-21)');
+        expect(merged.get(0).durationInDays).toBe(355); // Should be 355 days
+      });
+
+      test('Sequence with overlapping periods - should merge all', () => {
+        const periods = [
+          new Period('2024-01-01', '2024-01-05', Bounds.IncludeStartExcludeEnd), // [Jan 1, Jan 5)
+          new Period('2024-01-03', '2024-01-07', Bounds.IncludeStartExcludeEnd), // [Jan 3, Jan 7) - overlaps
+          new Period('2024-01-06', '2024-01-10', Bounds.IncludeStartExcludeEnd), // [Jan 6, Jan 10) - overlaps
+        ];
+        
+        const sequence = new Sequence(...periods);
+        const merged = sequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-01-10)');
+      });
+
+      test('Sequence bounds preservation - uses first period bounds', () => {
+        const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll); // [Jan 1, Jan 2]
+        const period2 = new Period('2024-01-02', '2024-01-03', Bounds.ExcludeStartIncludeEnd); // (Jan 2, Jan 3]
+        
+        const sequence = new Sequence(period1, period2);
+        const merged = sequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        // Should preserve the bounds of the first period
+        expect(merged.get(0).bounds).toBe(Bounds.IncludeAll);
+      });
+
+      test('Consecutive single-day periods merge into multi-day period', () => {
+        const periods = [
+          new Period('2024-01-01', '2024-01-02'), // Single day
+          new Period('2024-01-02', '2024-01-03'), // Single day
+          new Period('2024-01-03', '2024-01-04'), // Single day
+          new Period('2024-01-04', '2024-01-05')  // Single day
+        ];
+        
+        const sequence = new Sequence(...periods);
+        const merged = sequence.merge();
+        
+        expect(merged.count()).toBe(1);
+        expect(merged.get(0).toString()).toBe('[2024-01-01, 2024-01-05)');
+        expect(merged.get(0).durationInDays).toBe(4);
+      });
+    });
+
     describe('Total Duration Performance', () => {
       test('calculates total duration efficiently', () => {
         const sequence = createLargeSequence(10000); // Large sequence
