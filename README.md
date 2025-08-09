@@ -1,6 +1,6 @@
 # @georgevie/period-sequence
 
-**High-performance TypeScript library for time period manipulation with immutable design and enterprise-grade performance**
+**High-performance TypeScript library for date period manipulation with immutable design and enterprise-grade performance**
 
 [![npm version](https://img.shields.io/npm/v/@georgevie/period-sequence.svg)](https://www.npmjs.com/package/@georgevie/period-sequence)
 [![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](https://www.typescriptlang.org/)
@@ -26,24 +26,24 @@ npm install @georgevie/period-sequence
 ```typescript
 import { Period, Sequence, Bounds, DurationInterval } from '@georgevie/period-sequence';
 
-// Create time periods
-const meeting = new Period('2024-01-15T09:00:00Z', '2024-01-15T10:00:00Z');
-const lunch = Period.fromHours('2024-01-15T12:00:00Z', 1);
+// Create date periods
+const meeting = new Period('2024-01-15', '2024-01-16');
+const vacation = Period.fromDay('2024-07-15');
 const quarter = Period.fromQuarter(2024, 1);
 
 // Check relationships
-console.log(meeting.overlaps(lunch)); // false
+console.log(meeting.overlaps(vacation)); // false
 console.log(quarter.contains(meeting)); // true
-console.log(meeting.duration.hours); // 1
+console.log(meeting.durationInDays); // 1
 
 // Work with sequences
-const schedule = new Sequence(meeting, lunch);
+const schedule = new Sequence(meeting, vacation);
 console.log(schedule.count()); // 2
-console.log(schedule.totalDuration()); // 7200000 (2 hours in ms)
+console.log(schedule.totalDuration()); // 86400000 (1 day in ms)
 
 // High-performance set operations
 const conflicts = schedule1.intersect(schedule2);
-const available = allTime.subtract(schedule);
+const available = allDays.subtract(schedule);
 ```
 
 ## 📚 Core API
@@ -64,7 +64,7 @@ Period.fromWeek(2024, 25);           // ISO week 25
 // Relative periods
 Period.after('2024-01-01', DurationInterval.fromWeeks(2));
 Period.before('2024-12-31', DurationInterval.fromDays(30));
-Period.around('2024-06-15', DurationInterval.fromHours(12));
+Period.around('2024-06-15', DurationInterval.fromDays(3));
 ```
 
 ### Period Operations
@@ -82,17 +82,16 @@ period.equals(other);        // Check equality
 period.startingOn('2024-06-01');     // New start date
 period.endingOn('2024-06-30');       // New end date
 period.move(DurationInterval.fromDays(7)); // Shift forward
-period.expand(DurationInterval.fromHours(2)); // Extend both directions
+period.expand(DurationInterval.fromDays(1)); // Extend both directions
 
 // Analysis
 period.isBefore(other);      // Positional check
 period.gap(other);           // Find gap between periods
 
 // Formatting options
-period.toString();           // Smart formatting (shows time when relevant)
+period.toString();           // Date format: [2024-01-15, 2024-01-16)
 period.toDateString();       // Date only: [2024-01-15, 2024-01-16)
-period.toDateTimeString();   // Full datetime: [2024-01-15T09:00, 2024-01-15T10:00)
-period.toDisplayString();    // Human readable: "Jan 15, 2024 9:00 AM - 10:00 AM"
+period.toDisplayString();    // Human readable: "Jan 15, 2024 - Jan 16, 2024"
 period.format('iso');        // Custom format control
 ```
 
@@ -133,18 +132,18 @@ const exclusive = new Period('2024-01-01', '2024-01-31', Bounds.ExcludeAll); // 
 
 ## 🎨 Real-World Examples
 
-### Meeting Scheduler
+### Date Scheduler
 ```typescript
-const meetings = [
-  Period.fromHours('2024-01-15T09:00:00Z', 1),   // 9-10 AM
-  Period.fromHours('2024-01-15T14:00:00Z', 2),   // 2-4 PM
+const busyDays = [
+  Period.fromDay('2024-01-15'),   // Monday
+  Period.fromDay('2024-01-17'),   // Wednesday
 ];
 
-const schedule = new Sequence(...meetings);
-const workday = Period.fromHours('2024-01-15T08:00:00Z', 8);
+const schedule = new Sequence(...busyDays);
+const workWeek = new Period('2024-01-15', '2024-01-20'); // Mon-Fri
 
-// Find available time slots
-const availableSlots = new Sequence(workday).subtract(schedule);
+// Find available days
+const availableDays = new Sequence(workWeek).subtract(schedule);
 ```
 
 ### Resource Allocation
@@ -187,7 +186,7 @@ Contributions welcome! Please feel free to submit a Pull Request.
 
 #### Constructors
 ```typescript
-new Period(start: Date | number, end: Date | number, bounds?: Bounds)
+new Period(start: Date | number | string, end: Date | number | string, bounds?: Bounds)
 Period.fromMonth(year: number, month: number): Period
 Period.fromYear(year: number): Period  
 Period.fromDay(date: Date | string): Period
@@ -241,9 +240,8 @@ period.gap(other: Period): Period | null
 ```typescript
 period.toString(): string
 period.toDateString(): string
-period.toDateTimeString(): string
 period.toDisplayString(): string
-period.format(type: 'iso' | 'short' | 'long' | 'datetime' | 'smart'): string
+period.format(type: 'iso' | 'short' | 'long' | 'smart'): string
 ```
 
 ### Sequence Class
@@ -370,7 +368,7 @@ runPerformanceBenchmarks(): Promise<BenchmarkResult[]>
 
 ### Utility Functions
 ```typescript
-createPeriod(start: Date, end: Date): Period
+createPeriod(start: Date | number | string, end: Date | number | string): Period
 getDuration(period: Period): Duration
 periodsOverlap(period1: Period, period2: Period): boolean
 formatPeriod(period: Period, format?: 'short' | 'long'): string
@@ -382,4 +380,4 @@ MIT © [georgeVie](LICENSE)
 
 ---
 
-**@georgevie/period-sequence** - *When performance meets precision in time manipulation* ⏰
+**@georgevie/period-sequence** - *When performance meets precision in date manipulation* 📅

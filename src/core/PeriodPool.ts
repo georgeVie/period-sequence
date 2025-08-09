@@ -26,7 +26,7 @@ export class PeriodPool {
    * Get a Period instance from the pool or create new one
    * Ultra-fast object reuse for high-frequency operations
    */
-  acquire(start: number | Date, end: number | Date, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+  acquire(start: number | Date | string, end: number | Date | string, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     if (this.pool.length > 0) {
       const period = this.pool.pop()!;
       this.hits++;
@@ -79,7 +79,7 @@ export class PeriodPool {
  * Convenience function for high-performance Period creation
  * Automatically uses object pooling for temporary calculations
  */
-export function createPooledPeriod(start: number | Date, end: number | Date, bounds?: Bounds): Period {
+export function createPooledPeriod(start: number | Date | string, end: number | Date | string, bounds?: Bounds): Period {
   return PeriodPool.getInstance().acquire(start, end, bounds);
 }
 

@@ -18,7 +18,7 @@ export enum Bounds {
 }
 
 /**
- * Duration representation in various units
+ * Duration representation for time periods
  */
 export interface Duration {
   readonly milliseconds: number;

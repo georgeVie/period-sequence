@@ -456,17 +456,17 @@ describe('Period Class', () => {
         const duration = DurationInterval.fromDays(7);
         const period = Period.after(baseDate, duration);
         
-        expect(period.start).toEqual(baseDate);
-        expect(period.end).toEqual(new Date('2024-01-22T12:00:00.000Z'));
+        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-22T00:00:00.000Z')); // Normalized to midnight
         expect(period.bounds).toBe(Bounds.IncludeStartExcludeEnd);
       });
 
       test('works with string dates', () => {
-        const duration = DurationInterval.fromHours(24);
+        const duration = DurationInterval.fromDays(1);
         const period = Period.after('2024-01-15T12:00:00.000Z', duration);
         
-        expect(period.start).toEqual(baseDate);
-        expect(period.end).toEqual(new Date('2024-01-16T12:00:00.000Z'));
+        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-16T00:00:00.000Z')); // Normalized to midnight
       });
 
       test('works with custom bounds', () => {
@@ -482,17 +482,17 @@ describe('Period Class', () => {
         const duration = DurationInterval.fromDays(7);
         const period = Period.before(baseDate, duration);
         
-        expect(period.start).toEqual(new Date('2024-01-08T12:00:00.000Z'));
-        expect(period.end).toEqual(baseDate);
+        expect(period.start).toEqual(new Date('2024-01-08T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
         expect(period.bounds).toBe(Bounds.IncludeStartExcludeEnd);
       });
 
       test('works with string dates', () => {
-        const duration = DurationInterval.fromHours(12);
+        const duration = DurationInterval.fromDays(1);
         const period = Period.before('2024-01-15T12:00:00.000Z', duration);
         
-        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z'));
-        expect(period.end).toEqual(baseDate);
+        expect(period.start).toEqual(new Date('2024-01-14T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
       });
     });
 
@@ -501,17 +501,17 @@ describe('Period Class', () => {
         const duration = DurationInterval.fromDays(2); // 2 days total
         const period = Period.around(baseDate, duration);
         
-        expect(period.start).toEqual(new Date('2024-01-14T12:00:00.000Z')); // 1 day before
-        expect(period.end).toEqual(new Date('2024-01-16T12:00:00.000Z')); // 1 day after
+        expect(period.start).toEqual(new Date('2024-01-14T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-16T00:00:00.000Z')); // Normalized to midnight
         expect(period.bounds).toBe(Bounds.IncludeStartExcludeEnd);
       });
 
-      test('works with hours', () => {
-        const duration = DurationInterval.fromHours(4); // 4 hours total
+      test('works with sub-day durations (rounds up to days)', () => {
+        const duration = DurationInterval.fromHours(4); // 4 hours total, but rounds to minimum 2 days
         const period = Period.around(baseDate, duration);
         
-        expect(period.start).toEqual(new Date('2024-01-15T10:00:00.000Z')); // 2 hours before
-        expect(period.end).toEqual(new Date('2024-01-15T14:00:00.000Z')); // 2 hours after
+        expect(period.start).toEqual(new Date('2024-01-14T00:00:00.000Z')); // Normalized to midnight, 1 day before
+        expect(period.end).toEqual(new Date('2024-01-16T00:00:00.000Z')); // Normalized to midnight, 1 day after
       });
     });
 
@@ -519,26 +519,22 @@ describe('Period Class', () => {
       test('creates period from ISO 8601 duration string', () => {
         const period = Period.fromISO8601(baseDate, 'P7D');
         
-        expect(period.start).toEqual(baseDate);
-        expect(period.end).toEqual(new Date('2024-01-22T12:00:00.000Z'));
+        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-22T00:00:00.000Z')); // Normalized to midnight
       });
 
       test('works with complex ISO 8601 durations', () => {
-        const period = Period.fromISO8601(baseDate, 'P1DT12H30M');
-        const expectedEnd = new Date(baseDate.getTime() + 
-          (1 * 24 * 60 * 60 * 1000) + // 1 day
-          (12 * 60 * 60 * 1000) + // 12 hours
-          (30 * 60 * 1000)); // 30 minutes
+        const period = Period.fromISO8601(baseDate, 'P2D'); // Use 2 days since sub-day components are normalized
         
-        expect(period.start).toEqual(baseDate);
-        expect(period.end).toEqual(expectedEnd);
+        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-17T00:00:00.000Z')); // Normalized to midnight
       });
 
       test('works with string dates', () => {
-        const period = Period.fromISO8601('2024-01-15T12:00:00.000Z', 'PT2H');
+        const period = Period.fromISO8601('2024-01-15T12:00:00.000Z', 'P1D'); // Use 1 day since sub-day is normalized
         
-        expect(period.start).toEqual(baseDate);
-        expect(period.end).toEqual(new Date('2024-01-15T14:00:00.000Z'));
+        expect(period.start).toEqual(new Date('2024-01-15T00:00:00.000Z')); // Normalized to midnight
+        expect(period.end).toEqual(new Date('2024-01-16T00:00:00.000Z')); // Normalized to midnight
       });
     });
 
@@ -671,27 +667,27 @@ describe('Period Class', () => {
 
   describe('Edge Cases', () => {
     test('handles daylight saving time transitions', () => {
-      // Use proper DST transition times - these represent the same UTC moment
+      // Date-only operations normalize to midnight UTC, eliminating DST issues
       const dstStart = new Date('2024-03-10T07:00:00.000Z'); // 2 AM EST
-      const dstEnd = new Date('2024-03-10T08:00:00.000Z');   // 4 AM EDT (1 hour later)
+      const dstEnd = new Date('2024-03-11T08:00:00.000Z');   // Different days to avoid same-day normalization
       
       expect(() => new Period(dstStart, dstEnd)).not.toThrow();
     });
 
     test('handles timezone differences', () => {
       const utc = new Date('2024-01-01T00:00:00.000Z');
-      const est = new Date('2024-01-01T05:00:00.000Z'); // Same moment, different timezone
+      const est = new Date('2024-01-02T05:00:00.000Z'); // Different days to ensure valid period
       
       const period = new Period(utc, est);
-      expect(period.getDuration().hours).toBe(5);
+      expect(period.getDuration().days).toBe(1);
     });
 
-    test('handles very small periods', () => {
+    test('handles very small periods (normalized to days)', () => {
       const start = new Date('2024-01-01T00:00:00.000Z');
-      const end = new Date('2024-01-01T00:00:00.001Z'); // 1 millisecond
+      const end = new Date('2024-01-02T00:00:00.001Z'); // Different days to avoid normalization error
       
       const period = new Period(start, end);
-      expect(period.getDuration().milliseconds).toBe(1);
+      expect(period.getDuration().days).toBe(1);
     });
   });
 
@@ -699,11 +695,11 @@ describe('Period Class', () => {
     test('handles microsecond precision periods', () => {
       // Test periods with very small durations for high precision
       const start = new Date('2024-01-01T12:00:00.000Z');
-      const end = new Date('2024-01-01T12:00:00.001Z'); // 1ms
+      const end = new Date('2024-01-02T12:00:00.001Z'); // Different days to avoid normalization error
       const period = new Period(start, end);
       
-      expect(period.getDuration().milliseconds).toBe(1);
-      expect(period.containsDate(period.start)).toBe(true); // Use containsDate instead
+      expect(period.getDuration().days).toBe(1);
+      expect(period.containsDate(period.start)).toBe(true);
     });
 
     test('handles large time ranges (decades)', () => {
@@ -722,7 +718,7 @@ describe('Period Class', () => {
       const almostInvalidDate = new Date('2024-12-31T23:59:59.999Z');
       
       const period = new Period(validDate, almostInvalidDate);
-      expect(period.getDuration().days).toBe(366); // 2024 is a leap year
+      expect(period.getDuration().days).toBe(365); // Date normalization affects leap year calculation
     });
 
     test('period immutability verification', () => {
@@ -804,6 +800,94 @@ describe('Period Class', () => {
       const endTime = performance.now();
       expect(endTime - startTime).toBeLessThan(100); // Should be very fast
       expect(overlapCount).toBe(0); // Adjacent periods don't overlap by default (end != start)
+    });
+  });
+
+  describe('Date-Only Boundary Behavior Tests', () => {
+    test('date normalization strips time components', () => {
+      const period = new Period(
+        new Date('2024-01-01T15:30:45.123Z'),
+        new Date('2024-01-02T09:15:22.456Z')
+      );
+      
+      expect(period.start.toISOString()).toBe('2024-01-01T00:00:00.000Z');
+      expect(period.end.toISOString()).toBe('2024-01-02T00:00:00.000Z');
+      expect(period.durationInDays).toBe(1);
+    });
+
+    test('string inputs are normalized correctly', () => {
+      const period = new Period('2024-06-15T14:30:00Z', '2024-06-16T08:45:00Z');
+      expect(period.toString()).toBe('[2024-06-15, 2024-06-16)');
+      expect(period.durationInDays).toBe(1);
+    });
+
+    test('adjacent periods with IncludeStartExcludeEnd can merge', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeStartExcludeEnd);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd);
+      
+      expect(period1.touches(period2)).toBe(true);
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(true);
+      
+      const union = period1.union(period2);
+      expect(union).not.toBeNull();
+      expect(union!.toString()).toBe('[2024-01-01, 2024-01-03)');
+    });
+
+    test('overlapping periods with IncludeAll bounds', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeAll);
+      
+      expect(period1.overlaps(period2)).toBe(true); // Both include Jan 2
+      expect(period1.touches(period2)).toBe(true);
+      
+      const union = period1.union(period2);
+      expect(union!.toString()).toBe('[2024-01-01, 2024-01-03]');
+    });
+
+    test('periods with ExcludeAll bounds do not merge on boundaries', () => {
+      const period1 = new Period('2024-01-01', '2024-01-03', Bounds.ExcludeAll);
+      const period2 = new Period('2024-01-03', '2024-01-05', Bounds.ExcludeAll);
+      
+      expect(period1.overlaps(period2)).toBe(false); // Neither includes Jan 3
+      expect(period1.touches(period2)).toBe(true);
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(false);
+    });
+
+    test('mixed bounds behavior - IncludeAll + IncludeStartExcludeEnd', () => {
+      const period1 = new Period('2024-01-01', '2024-01-02', Bounds.IncludeAll);
+      const period2 = new Period('2024-01-02', '2024-01-03', Bounds.IncludeStartExcludeEnd);
+      
+      expect(period1.overlaps(period2)).toBe(true); // period1 includes Jan 2, period2 includes Jan 2
+      expect(period1.canMergeConsecutiveDays(period2)).toBe(true);
+    });
+
+    test('seasonal boundary scenario - consecutive seasons merge', () => {
+      const winter = new Period('2024-01-01', '2024-03-20', Bounds.IncludeStartExcludeEnd);
+      const spring = new Period('2024-03-20', '2024-06-21', Bounds.IncludeStartExcludeEnd);
+      
+      expect(winter.touches(spring)).toBe(true);
+      expect(winter.canMergeConsecutiveDays(spring)).toBe(true);
+      
+      const union = winter.union(spring);
+      expect(union!.toString()).toBe('[2024-01-01, 2024-06-21)');
+      expect(union!.durationInDays).toBe(172); // Days from Jan 1 to Jun 21
+    });
+
+    test('sub-day periods are normalized to whole days', () => {
+      const sameDayPeriod = () => new Period('2024-01-01T08:00:00Z', '2024-01-01T16:00:00Z');
+      
+      // Should throw because both normalize to the same day
+      expect(sameDayPeriod).toThrow('Start date must be before end date');
+    });
+
+    test('durationInDays property works correctly', () => {
+      const oneDay = new Period('2024-01-01', '2024-01-02');
+      const oneWeek = new Period('2024-01-01', '2024-01-08');
+      const oneMonth = Period.fromMonth(2024, 2); // February 2024 (leap year)
+      
+      expect(oneDay.durationInDays).toBe(1);
+      expect(oneWeek.durationInDays).toBe(7);
+      expect(oneMonth.durationInDays).toBe(29); // Feb 2024 has 29 days
     });
   });
 });

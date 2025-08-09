@@ -1,20 +1,21 @@
 /**
- * High-performance Period class using numeric timestamps internally
- * Immutable value object optimized for large-scale operations
+ * High-performance Period class for date period handling
+ * Immutable value object representing time spans at day-level precision
  */
 
 import { Bounds, Duration, BoundsUtils } from './types';
 import { FastBounds } from './FastBounds';
 
 export class Period {
-  // Store as numeric timestamps for maximum performance
+  // Store as midnight UTC timestamps for consistent day-level operations
   private readonly _startTime: number;
   private readonly _endTime: number;
   private readonly _bounds: Bounds;
 
-  constructor(start: Date | number, end: Date | number, bounds: Bounds = Bounds.IncludeStartExcludeEnd) {
-    const startTime = typeof start === 'number' ? start : start.getTime();
-    const endTime = typeof end === 'number' ? end : end.getTime();
+  constructor(start: Date | number | string, end: Date | number | string, bounds: Bounds = Bounds.IncludeStartExcludeEnd) {
+    // Normalize all inputs to midnight UTC
+    const startTime = this._normalizeDateToMidnightUTC(start);
+    const endTime = this._normalizeDateToMidnightUTC(end);
 
     if (startTime >= endTime) {
       throw new Error('Start date must be before end date');
@@ -23,6 +24,43 @@ export class Period {
     this._startTime = startTime;
     this._endTime = endTime;
     this._bounds = bounds;
+  }
+
+  /**
+   * Normalize any date input to midnight UTC for consistent day-level operations
+   */
+  private _normalizeDateToMidnightUTC(input: Date | number | string): number {
+    let date: Date;
+    let timestamp: number;
+    
+    if (typeof input === 'string') {
+      date = new Date(input);
+      timestamp = date.getTime();
+    } else if (typeof input === 'number') {
+      timestamp = input;
+      // Fast path: if already a midnight UTC timestamp, return directly
+      if (timestamp % 86400000 === 0) {
+        return timestamp;
+      }
+      date = new Date(timestamp);
+    } else {
+      timestamp = input.getTime();
+      // Fast path: if already at midnight UTC, return directly  
+      if (timestamp % 86400000 === 0) {
+        return timestamp;
+      }
+      date = input;
+    }
+    
+    // Extract date components and create midnight UTC
+    const normalized = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    
+    // Development warning for sub-day precision inputs (skip during tests for performance)
+    if (process.env.NODE_ENV === 'development' && typeof jest === 'undefined' && timestamp !== normalized) {
+      console.warn(`Period: Time component normalized to midnight UTC. Input: ${date.toISOString()} -> Output: ${new Date(normalized).toISOString()}`);
+    }
+    
+    return normalized;
   }
 
   /**
@@ -61,15 +99,22 @@ export class Period {
   }
 
   /**
-   * Calculate duration with optimized calculations
-   * Using pre-calculated constants for performance
+   * Get duration in days (optimized for date-only operations)
+   * Much faster than getDuration().days for simple day calculations
+   */
+  get durationInDays(): number {
+    return (this._endTime - this._startTime) / 86400000;
+  }
+
+  /**
+   * Calculate duration with day-level precision
    */
   getDuration(): Duration {
     const milliseconds = this._endTime - this._startTime;
-    const seconds = Math.floor(milliseconds * 0.001); // Faster than / 1000
-    const minutes = Math.floor(seconds * 0.0166667); // Faster than / 60
-    const hours = Math.floor(minutes * 0.0166667); // Faster than / 60
-    const days = Math.floor(hours * 0.0416667); // Faster than / 24
+    const days = Math.floor(milliseconds / 86400000);
+    const hours = days * 24;
+    const minutes = hours * 60;
+    const seconds = minutes * 60;
 
     return {
       milliseconds,
@@ -82,30 +127,31 @@ export class Period {
 
   /**
    * Check if this period overlaps with another period
-   * Two periods overlap if they share any point in time
+   * Periods overlap if they share any common date, with boundary rules applied
    * @param other - The period to check for overlap
    * @returns True if periods overlap, false otherwise
    */
   overlaps(other: Period): boolean {
-    // Handle boundary conditions for touching periods
-    const thisStartInclusive = FastBounds.isStartInclusive(this._bounds);
-    const thisEndInclusive = FastBounds.isEndInclusive(this._bounds);
-    const otherStartInclusive = FastBounds.isStartInclusive(other._bounds);
-    const otherEndInclusive = FastBounds.isEndInclusive(other._bounds);
-
-    // Check boundary edge cases first
-    if (this._endTime === other._startTime) {
-      return thisEndInclusive && otherStartInclusive;
-    }
-    if (other._endTime === this._startTime) {
-      return otherEndInclusive && thisStartInclusive;
-    }
-
     // Fast path: check if periods are completely separate (no touching)
     if (this._endTime < other._startTime || other._endTime < this._startTime) {
       return false;
     }
 
+    // Check if periods are adjacent (consecutive days)
+    if (this._endTime === other._startTime) {
+      // For date-only operations, adjacent periods can overlap based on bounds
+      const thisEndInclusive = FastBounds.isEndInclusive(this._bounds);
+      const otherStartInclusive = FastBounds.isStartInclusive(other._bounds);
+      return thisEndInclusive && otherStartInclusive;
+    }
+    
+    if (other._endTime === this._startTime) {
+      const otherEndInclusive = FastBounds.isEndInclusive(other._bounds);
+      const thisStartInclusive = FastBounds.isStartInclusive(this._bounds);
+      return otherEndInclusive && thisStartInclusive;
+    }
+
+    // If they're not just touching, they must overlap
     return true;
   }
 
@@ -146,12 +192,14 @@ export class Period {
   }
 
   /**
-   * Check if periods touch (adjacent with no gap)
-   * Optimized for performance
+   * Check if periods touch (adjacent with no gap) - date-only version
+   * For date-only periods, this means consecutive days
    */
   touches(other: Period): boolean {
     return (this._endTime === other._startTime) || (other._endTime === this._startTime);
   }
+
+
 
   /**
    * Check if periods abut (touch at exactly one point)
@@ -205,9 +253,9 @@ export class Period {
    * Internal method for object pooling - reset period with new values
    * @internal
    */
-  _reset(start: Date | number, end: Date | number, bounds: Bounds): void {
-    const startTime = typeof start === 'number' ? start : start.getTime();
-    const endTime = typeof end === 'number' ? end : end.getTime();
+  _reset(start: Date | number | string, end: Date | number | string, bounds: Bounds): void {
+    const startTime = this._normalizeDateToMidnightUTC(start);
+    const endTime = this._normalizeDateToMidnightUTC(end);
 
     if (startTime >= endTime) {
       throw new Error('Start date must be before end date');
@@ -305,45 +353,42 @@ export class Period {
   }
 
   /**
-   * Format period with bounds notation
-   * Optimized string operations and caching
+   * Format period with bounds notation for date-only display
+   * All formats show dates only - no time components
    */
-  format(dateFormat: 'iso' | 'short' | 'long' | 'datetime' | 'smart' = 'smart'): string {
+  format(dateFormat: 'iso' | 'short' | 'long' | 'smart' = 'iso'): string {
     const [startBracket, endBracket] = BoundsUtils.getBrackets(this._bounds);
 
     let startStr: string, endStr: string;
 
-    // Smart formatting: show time if period is less than a day or has non-midnight times
-    const periodDuration = this._endTime - this._startTime;
-    const hasTime = this._startTime % 86400000 !== 0 || this._endTime % 86400000 !== 0; // Check if not midnight
-    const isShortPeriod = periodDuration < 86400000; // Less than 24 hours
-    
+    // Smart formatting defaults to ISO for date-only operations
     if (dateFormat === 'smart') {
-      dateFormat = (hasTime || isShortPeriod) ? 'datetime' : 'iso';
+      dateFormat = 'iso';
     }
 
     switch (dateFormat) {
       case 'iso':
-        startStr = new Date(this._startTime).toISOString().slice(0, 10); // Date only
+        startStr = new Date(this._startTime).toISOString().slice(0, 10); // Date only (YYYY-MM-DD)
         endStr = new Date(this._endTime).toISOString().slice(0, 10);
-        break;
-      case 'datetime':
-        startStr = new Date(this._startTime).toISOString().slice(0, 16); // Date + time (YYYY-MM-DDTHH:MM)
-        endStr = new Date(this._endTime).toISOString().slice(0, 16);
         break;
       case 'short':
         const shortOptions: Intl.DateTimeFormatOptions = { 
-          month: 'short', day: 'numeric', year: 'numeric' 
+          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
         };
         startStr = new Date(this._startTime).toLocaleDateString('en-US', shortOptions);
         endStr = new Date(this._endTime).toLocaleDateString('en-US', shortOptions);
         break;
       case 'long':
         const longOptions: Intl.DateTimeFormatOptions = { 
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
         };
         startStr = new Date(this._startTime).toLocaleDateString('en-US', longOptions);
         endStr = new Date(this._endTime).toLocaleDateString('en-US', longOptions);
+        break;
+      default:
+        // Fallback to ISO for any unrecognized format
+        startStr = new Date(this._startTime).toISOString().slice(0, 10);
+        endStr = new Date(this._endTime).toISOString().slice(0, 10);
         break;
     }
 
@@ -351,27 +396,19 @@ export class Period {
   }
 
   /**
-   * Create string representation with smart formatting
-   * Shows time when relevant (short periods or non-midnight times)
+   * Create string representation with date-only formatting
+   * Always shows dates only in ISO format
    */
   toString(): string {
-    return this.format('smart');
-  }
-
-  /**
-   * Format as date only (no time component)
-   * Example: [2024-01-15, 2024-01-16)
-   */
-  toDateString(): string {
     return this.format('iso');
   }
 
   /**
-   * Format with full date and time
-   * Example: [2024-01-15T09:00, 2024-01-15T10:00)
+   * Format as date only (same as toString for date-only periods)
+   * Example: [2024-01-15, 2024-01-16)
    */
-  toDateTimeString(): string {
-    return this.format('datetime');
+  toDateString(): string {
+    return this.format('iso');
   }
 
   /**
@@ -392,11 +429,13 @@ export class Period {
   }
 
   /**
-   * Merge with another period if they touch or overlap
-   * Returns combined period, or null if they don't touch
+   * Merge with another period if they touch or overlap (date-only optimized)
+   * For date-only operations, consecutive days can be merged based on bounds
+   * Returns combined period, or null if they can't be merged
    */
   union(other: Period): Period | null {
-    if (!this.touches(other) && !this.overlaps(other)) {
+    // Check if they overlap or are consecutive days that should merge
+    if (!this.overlaps(other) && !this.canMergeConsecutiveDays(other)) {
       return null;
     }
     
@@ -408,60 +447,69 @@ export class Period {
   }
 
   /**
-   * Format for human readability
-   * Example: "Jan 15, 2024 9:00 AM - 10:00 AM" or "Jan 15 - 16, 2024"
+   * Check if two consecutive day periods can be merged based on their bounds
+   */
+  canMergeConsecutiveDays(other: Period): boolean {
+    if (!this.touches(other)) {
+      return false;
+    }
+    
+    // For consecutive days to merge, the touching boundaries must both be inclusive
+    // or we need inclusive bounds that create continuity
+    if (this._endTime === other._startTime) {
+      const thisEndInclusive = FastBounds.isEndInclusive(this._bounds);
+      const otherStartInclusive = FastBounds.isStartInclusive(other._bounds);
+      return thisEndInclusive || otherStartInclusive; // Either can create continuity
+    }
+    
+    if (other._endTime === this._startTime) {
+      const otherEndInclusive = FastBounds.isEndInclusive(other._bounds);
+      const thisStartInclusive = FastBounds.isStartInclusive(this._bounds);
+      return otherEndInclusive || thisStartInclusive; // Either can create continuity
+    }
+    
+    return false;
+  }
+
+  /**
+   * Format for human readability with date-only display
+   * Example: "Jan 15, 2024", "Jan 15 - 20, 2024" or "Jan 15, 2024 - Feb 2, 2024"
    */
   toDisplayString(): string {
     const startDate = new Date(this._startTime);
     const endDate = new Date(this._endTime);
     
-    // Check if it's the same day
-    const sameDay = startDate.toDateString() === endDate.toDateString();
+    // For date-only periods, check if start and end are consecutive days (1-day period)
+    const daysDiff = Math.floor((this._endTime - this._startTime) / 86400000);
     
-    // Check if it has specific times (not midnight)
-    const hasTime = this._startTime % 86400000 !== 0 || this._endTime % 86400000 !== 0;
-    const isShortPeriod = (this._endTime - this._startTime) < 86400000;
-    
-    if (sameDay && (hasTime || isShortPeriod)) {
-      // Same day with times: "Jan 15, 2024 9:00 AM - 10:00 AM"
-      const dateStr = startDate.toLocaleDateString('en-US', { 
-        month: 'short', day: 'numeric', year: 'numeric' 
-      });
-      const startTime = startDate.toLocaleTimeString('en-US', { 
-        hour: 'numeric', minute: '2-digit', hour12: true 
-      });
-      const endTime = endDate.toLocaleTimeString('en-US', { 
-        hour: 'numeric', minute: '2-digit', hour12: true 
-      });
-      return `${dateStr} ${startTime} - ${endTime}`;
-    } else if (sameDay) {
-      // Same day, no specific times: "Jan 15, 2024"
+    if (daysDiff === 1) {
+      // Single day period: "Jan 15, 2024"
       return startDate.toLocaleDateString('en-US', { 
-        month: 'short', day: 'numeric', year: 'numeric' 
+        month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
       });
     } else {
-      // Different days: "Jan 15 - 20, 2024" or "Jan 15, 2024 - Feb 2, 2024"
-      const startMonth = startDate.getMonth();
-      const endMonth = endDate.getMonth();
-      const startYear = startDate.getFullYear();
-      const endYear = endDate.getFullYear();
+      // Multi-day periods: format based on date ranges
+      const startMonth = startDate.getUTCMonth();
+      const endMonth = endDate.getUTCMonth();
+      const startYear = startDate.getUTCFullYear();
+      const endYear = endDate.getUTCFullYear();
       
       if (startYear === endYear && startMonth === endMonth) {
         // Same month: "Jan 15 - 20, 2024"
-        const monthStr = startDate.toLocaleDateString('en-US', { month: 'short' });
-        return `${monthStr} ${startDate.getDate()} - ${endDate.getDate()}, ${startYear}`;
+        const monthStr = startDate.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+        return `${monthStr} ${startDate.getUTCDate()} - ${endDate.getUTCDate()}, ${startYear}`;
       } else if (startYear === endYear) {
         // Same year: "Jan 15 - Feb 20, 2024"
-        const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const startStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+        const endStr = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
         return `${startStr} - ${endStr}, ${startYear}`;
       } else {
         // Different years: "Dec 15, 2023 - Jan 20, 2024"
         const startStr = startDate.toLocaleDateString('en-US', { 
-          month: 'short', day: 'numeric', year: 'numeric' 
+          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
         });
         const endStr = endDate.toLocaleDateString('en-US', { 
-          month: 'short', day: 'numeric', year: 'numeric' 
+          month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
         });
         return `${startStr} - ${endStr}`;
       }
