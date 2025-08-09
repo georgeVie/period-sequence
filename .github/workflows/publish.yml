@@ -1,9 +1,11 @@
-name: 🚀 Publish to NPM
+name: 🚀 Auto Publish to NPM
 
 on:
   push:
     tags:
       - 'v*'  # Trigger on version tags like v1.0.1, v2.0.0, etc.
+      # Note: This workflow runs when tags are pushed manually
+      # For UI-based releases, use the "Manual Release" workflow instead
 
 jobs:
   publish:
