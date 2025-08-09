@@ -1,6 +1,6 @@
 /**
- * Named constructors for Period creation
- * Optimized for performance and convenience
+ * Named constructors for Period creation optimized for date-only operations
+ * All constructors work with day-level precision and normalize to midnight UTC
  */
 
 import { Period } from '../core/Period';
@@ -10,75 +10,85 @@ import { DurationInterval } from '../duration/DurationInterval';
 export namespace PeriodConstructors {
   /**
    * Create period from start and end dates (most common constructor)
-   * Optimized for direct date input
+   * Dates are automatically normalized to midnight UTC for date-only operations
    */
   export function fromDates(start: Date, end: Date, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     return new Period(start, end, bounds);
   }
 
   /**
-   * Create period from month (high performance, timezone-aware)
-   * Pre-calculated for common use case
+   * Create period from month (optimized for date-only operations)
+   * Returns period covering the entire month at day-level precision
    */
   export function fromMonth(year: number, month: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    // Use UTC to avoid timezone issues - fastest approach
-    const startTime = Date.UTC(year, month - 1, 1);
-    const endTime = Date.UTC(year, month, 1);
-    return new Period(startTime, endTime, bounds);
+    // Create dates that will be normalized by Period constructor
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1));
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
-   * Create period from year (timezone-aware)
-   * Optimized with direct UTC calculations
+   * Create period from year (optimized for date-only operations)
+   * Returns period covering the entire year at day-level precision
    */
   export function fromYear(year: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const startTime = Date.UTC(year, 0, 1);
-    const endTime = Date.UTC(year + 1, 0, 1);
-    return new Period(startTime, endTime, bounds);
+    const startDate = new Date(Date.UTC(year, 0, 1));
+    const endDate = new Date(Date.UTC(year + 1, 0, 1));
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
-   * Create period from day (timezone-aware)
-   * Optimized with direct UTC calculations
+   * Create period from a single day (optimized for date-only operations)
+   * Returns a 1-day period for the specified date
    */
   export function fromDay(date: Date | string, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     const day = typeof date === 'string' ? new Date(date) : date;
-    // Use UTC to avoid timezone interpretation issues
-    const startTime = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate());
-    const endTime = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate() + 1);
-    return new Period(startTime, endTime, bounds);
+    const startDate = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate()));
+    const endDate = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + 1));
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
-   * Create period starting after a specific date/time
-   * Optimized with direct timestamp operations
+   * Create period starting after a specific date (date-only operations)
+   * Duration is applied at day-level precision, minimum 1 day
    */
   export function after(start: Date | string, duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const startTime = typeof start === 'string' ? new Date(start).getTime() : start.getTime();
-    const endTime = startTime + duration.milliseconds;
-    return new Period(startTime, endTime, bounds);
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    // Ensure minimum 1-day duration for date-only operations
+    const durationDays = Math.max(1, Math.ceil(duration.milliseconds / 86400000));
+    const endTime = startDate.getTime() + (durationDays * 86400000);
+    const endDate = new Date(endTime);
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
-   * Create period ending before a specific date/time
-   * Optimized with direct timestamp operations
+   * Create period ending before a specific date (date-only operations)
+   * Duration is applied at day-level precision, minimum 1 day
    */
   export function before(end: Date | string, duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const endTime = typeof end === 'string' ? new Date(end).getTime() : end.getTime();
-    const startTime = endTime - duration.milliseconds;
-    return new Period(startTime, endTime, bounds);
+    const endDate = typeof end === 'string' ? new Date(end) : end;
+    // Ensure minimum 1-day duration for date-only operations
+    const durationDays = Math.max(1, Math.ceil(duration.milliseconds / 86400000));
+    const startTime = endDate.getTime() - (durationDays * 86400000);
+    const startDate = new Date(startTime);
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
-   * Create period centered around a specific date/time
-   * Optimized with single division and direct calculations
+   * Create period centered around a specific date (date-only operations)
+   * Duration is split evenly around the center date, minimum 1 day each side
    */
   export function around(center: Date | string, duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const centerTime = typeof center === 'string' ? new Date(center).getTime() : center.getTime();
-    const halfDuration = duration.milliseconds * 0.5; // Faster than / 2
-    const startTime = centerTime - halfDuration;
-    const endTime = centerTime + halfDuration;
-    return new Period(startTime, endTime, bounds);
+    const centerDate = typeof center === 'string' ? new Date(center) : center;
+    // For date-only operations, ensure at least 1 day on each side
+    const durationDays = Math.max(2, Math.ceil(duration.milliseconds / 86400000)); // Minimum 2 days total
+    const halfDurationDays = Math.floor(durationDays / 2);
+    
+    const startTime = centerDate.getTime() - (halfDurationDays * 86400000);
+    const endTime = centerDate.getTime() + (halfDurationDays * 86400000);
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
@@ -127,27 +137,28 @@ export namespace PeriodConstructors {
   }
 
   /**
-   * Create period from millisecond timestamps
-   * Optimized for working with numeric timestamps
+   * Create period from millisecond timestamps (date-only operations)
+   * Timestamps are normalized to midnight UTC for consistent behavior
    */
   export function fromTimestamps(startMs: number, endMs: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    return new Period(startMs, endMs, bounds);
+    // Use Date objects to ensure normalization happens
+    return new Period(new Date(startMs), new Date(endMs), bounds);
   }
 
   /**
-   * Create period representing today (current date)
-   * Uses local timezone for "today" calculation
+   * Create period representing today (current date in local timezone)
+   * Returns a 1-day period for today at date-only precision
    */
   export function today(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     const now = new Date();
-    const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const endTime = startTime + 86400000; // 24 hours in milliseconds
-    return new Period(startTime, endTime, bounds);
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    return new Period(startDate, endDate, bounds);
   }
 
   /**
    * Create period representing this week (Monday to Sunday)
-   * Uses ISO week calculation
+   * Uses ISO week calculation with date-only precision
    */
   export function thisWeek(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
     const now = new Date();
@@ -156,7 +167,7 @@ export namespace PeriodConstructors {
     monday.setHours(0, 0, 0, 0);
     
     const sunday = new Date(monday.getTime() + 7 * 86400000);
-    return new Period(monday.getTime(), sunday.getTime(), bounds);
+    return new Period(monday, sunday, bounds);
   }
 
   /**
@@ -178,13 +189,15 @@ export namespace PeriodConstructors {
   }
 
   /**
-   * Create period starting now with specified duration
-   * Convenient for "from now" scenarios
+   * Create period starting from today with specified duration (date-only operations)
+   * Uses current date as starting point, duration rounded up to whole days
    */
-  export function now(duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
-    const startTime = Date.now();
-    const endTime = startTime + duration.milliseconds;
-    return new Period(startTime, endTime, bounds);
+  export function fromToday(duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const startDate = new Date();
+    const durationDays = Math.max(1, Math.ceil(duration.milliseconds / 86400000));
+    const endTime = startDate.getTime() + (durationDays * 86400000);
+    const endDate = new Date(endTime);
+    return new Period(startDate, endDate, bounds);
   }
 
   /**

@@ -20,14 +20,14 @@ export class Period extends PeriodClass {
   static fromTimestamps = PeriodConstructors.fromTimestamps;
   static fromDuration = PeriodConstructors.fromDuration;
   
-  // Time-based constructors
+  // Date-based constructors
   static fromMonth = PeriodConstructors.fromMonth;
   static fromYear = PeriodConstructors.fromYear;
   static fromDay = PeriodConstructors.fromDay;
   static fromWeek = PeriodConstructors.fromWeek;
   static fromQuarter = PeriodConstructors.fromQuarter;
   
-  // Relative constructors
+  // Relative constructors (date-only operations)
   static after = PeriodConstructors.after;
   static before = PeriodConstructors.before;
   static around = PeriodConstructors.around;
@@ -38,11 +38,11 @@ export class Period extends PeriodClass {
   static thisWeek = PeriodConstructors.thisWeek;
   static thisMonth = PeriodConstructors.thisMonth;
   static thisYear = PeriodConstructors.thisYear;
-  static now = PeriodConstructors.now;
+  static fromToday = PeriodConstructors.fromToday;
 }
 
 // Utility functions
-export function createPeriod(start: Date, end: Date): Period {
+export function createPeriod(start: Date | string, end: Date | string): Period {
   return new Period(start, end);
 }
 
