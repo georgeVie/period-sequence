@@ -2,8 +2,15 @@
 
 **High-performance TypeScript library for date period manipulation with immutable design and enterprise-grade performance**
 
-[![npm version](https://img.shields.io/npm/v/@georgevie/period-sequence.svg)](https://www.npmjs.com/package/@georgevie/period-sequence)
-[![TypeScript](https://img.shields.io/badge/%3C%2F%3E-TypeScript-%230074c1.svg)](https://www.typescriptlang.org/)
+[![npm version](https://img.shields.io/npm/v/@georgevie/period-sequence.svg?style=flat-square)](https://www.npmjs.com/package/@georgevie/period-sequence)
+[![npm downloads](https://img.shields.io/npm/dm/@georgevie/period-sequence.svg?style=flat-square)](https://www.npmjs.com/package/@georgevie/period-sequence)
+[![license](https://img.shields.io/npm/l/@georgevie/period-sequence.svg?style=flat-square)](https://github.com/georgeVie/period-sequence/blob/main/LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/georgeVie/period-sequence/ci.yml?style=flat-square&label=CI)](https://github.com/georgeVie/period-sequence/actions)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![GitHub Issues](https://img.shields.io/github/issues/georgeVie/period-sequence?style=flat-square)](https://github.com/georgeVie/period-sequence/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/georgeVie/period-sequence?style=flat-square&logo=github)](https://github.com/georgeVie/period-sequence)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://github.com/georgeVie/period-sequence/pulls)
 
 ## ✨ Features
 
