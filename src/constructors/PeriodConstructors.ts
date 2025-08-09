@@ -9,6 +9,14 @@ import { DurationInterval } from '../duration/DurationInterval';
 
 export namespace PeriodConstructors {
   /**
+   * Create period from start and end dates (most common constructor)
+   * Optimized for direct date input
+   */
+  export function fromDates(start: Date, end: Date, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    return new Period(start, end, bounds);
+  }
+
+  /**
    * Create period from month (high performance, timezone-aware)
    * Pre-calculated for common use case
    */
@@ -115,6 +123,78 @@ export namespace PeriodConstructors {
     const startTime = Date.UTC(year, startMonth, 1);
     const endTime = Date.UTC(year, startMonth + 3, 1);
     
+    return new Period(startTime, endTime, bounds);
+  }
+
+  /**
+   * Create period from millisecond timestamps
+   * Optimized for working with numeric timestamps
+   */
+  export function fromTimestamps(startMs: number, endMs: number, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    return new Period(startMs, endMs, bounds);
+  }
+
+  /**
+   * Create period representing today (current date)
+   * Uses local timezone for "today" calculation
+   */
+  export function today(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const now = new Date();
+    const startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const endTime = startTime + 86400000; // 24 hours in milliseconds
+    return new Period(startTime, endTime, bounds);
+  }
+
+  /**
+   * Create period representing this week (Monday to Sunday)
+   * Uses ISO week calculation
+   */
+  export function thisWeek(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const now = new Date();
+    const currentDay = now.getDay() || 7; // Sunday = 7, Monday = 1
+    const monday = new Date(now.getTime() - (currentDay - 1) * 86400000);
+    monday.setHours(0, 0, 0, 0);
+    
+    const sunday = new Date(monday.getTime() + 7 * 86400000);
+    return new Period(monday.getTime(), sunday.getTime(), bounds);
+  }
+
+  /**
+   * Create period representing this month
+   * Uses current date's month
+   */
+  export function thisMonth(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const now = new Date();
+    return fromMonth(now.getFullYear(), now.getMonth() + 1, bounds);
+  }
+
+  /**
+   * Create period representing this year
+   * Uses current date's year
+   */
+  export function thisYear(bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const now = new Date();
+    return fromYear(now.getFullYear(), bounds);
+  }
+
+  /**
+   * Create period starting now with specified duration
+   * Convenient for "from now" scenarios
+   */
+  export function now(duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const startTime = Date.now();
+    const endTime = startTime + duration.milliseconds;
+    return new Period(startTime, endTime, bounds);
+  }
+
+  /**
+   * Create period with specified duration starting from given time
+   * Alias for 'after' with clearer naming
+   */
+  export function fromDuration(start: Date | string | number, duration: DurationInterval, bounds: Bounds = Bounds.IncludeStartExcludeEnd): Period {
+    const startTime = typeof start === 'number' ? start : 
+                      typeof start === 'string' ? new Date(start).getTime() : start.getTime();
+    const endTime = startTime + duration.milliseconds;
     return new Period(startTime, endTime, bounds);
   }
 }

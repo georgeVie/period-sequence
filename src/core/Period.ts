@@ -375,6 +375,39 @@ export class Period {
   }
 
   /**
+   * Calculate intersection with another period
+   * Returns the overlapping period, or null if no overlap
+   */
+  intersection(other: Period): Period | null {
+    if (!this.overlaps(other)) {
+      return null;
+    }
+    
+    const startTime = Math.max(this._startTime, other._startTime);
+    const endTime = Math.min(this._endTime, other._endTime);
+    
+    // Use the more restrictive bounds
+    const bounds = this._bounds;
+    return new Period(startTime, endTime, bounds);
+  }
+
+  /**
+   * Merge with another period if they touch or overlap
+   * Returns combined period, or null if they don't touch
+   */
+  union(other: Period): Period | null {
+    if (!this.touches(other) && !this.overlaps(other)) {
+      return null;
+    }
+    
+    const startTime = Math.min(this._startTime, other._startTime);
+    const endTime = Math.max(this._endTime, other._endTime);
+    
+    // Use this period's bounds
+    return new Period(startTime, endTime, this._bounds);
+  }
+
+  /**
    * Format for human readability
    * Example: "Jan 15, 2024 9:00 AM - 10:00 AM" or "Jan 15 - 16, 2024"
    */

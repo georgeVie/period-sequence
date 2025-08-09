@@ -15,15 +15,30 @@ export type { BenchmarkResult, BenchmarkSuite } from './performance/PerformanceB
 
 // Main Period class with static constructors
 export class Period extends PeriodClass {
+  // Basic constructors
+  static fromDates = PeriodConstructors.fromDates;
+  static fromTimestamps = PeriodConstructors.fromTimestamps;
+  static fromDuration = PeriodConstructors.fromDuration;
+  
+  // Time-based constructors
   static fromMonth = PeriodConstructors.fromMonth;
   static fromYear = PeriodConstructors.fromYear;
   static fromDay = PeriodConstructors.fromDay;
   static fromWeek = PeriodConstructors.fromWeek;
   static fromQuarter = PeriodConstructors.fromQuarter;
+  
+  // Relative constructors
   static after = PeriodConstructors.after;
   static before = PeriodConstructors.before;
   static around = PeriodConstructors.around;
   static fromISO8601 = PeriodConstructors.fromISO8601;
+  
+  // Convenience constructors
+  static today = PeriodConstructors.today;
+  static thisWeek = PeriodConstructors.thisWeek;
+  static thisMonth = PeriodConstructors.thisMonth;
+  static thisYear = PeriodConstructors.thisYear;
+  static now = PeriodConstructors.now;
 }
 
 // Utility functions
